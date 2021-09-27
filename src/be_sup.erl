@@ -14,7 +14,7 @@
     id => I,
     start => {I, start_link, Args},
     restart => permanent,
-    shutdown => 5000,
+    shutdown => 30000,
     type => supervisor,
     modules => [I]
 }).
@@ -24,7 +24,7 @@
     id => I,
     start => {M, start_link, Args},
     restart => permanent,
-    shutdown => 5000,
+    shutdown => 30000,
     type => worker,
     modules => [M]
 }).
