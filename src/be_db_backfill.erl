@@ -14,7 +14,8 @@
     dc_burn/2,
     oracle_price_at/1,
     gateway_payers/0,
-    consensus_failure_members/0
+    consensus_failure_members/0,
+    gateway_location_clear_nulls/0
 ]).
 
 -define(INSERT_RECEIPTS_CHALLENGERS, [
@@ -239,26 +240,38 @@ reward_gateways(MinBlock, MaxBlock) ->
 %%
 
 gateway_location_hex() ->
-    {ok, _, NoLocs} =
+    {ok, _, Locs} =
         ?EQUERY(
             [
-                "select address, location from gateway_inventory where location is not null"
+                "select address, location from gateway_inventory"
             ],
             []
         ),
 
-    lists:foreach(
-        fun({Addr, LocationBin}) ->
-            Location = h3:from_string(binary_to_list(LocationBin)),
-            {ok, _} =
-                ?EQUERY("update gateway_inventory set location_hex = $2 where address = $1", [
-                    Addr,
-                    ?MAYBE_H3(?MAYBE_FN(fun be_db_gateway:calculate_location_hex/1, Location))
-                ])
-        end,
-        NoLocs
-    ),
-    length(NoLocs).
+    erlang:spawn(fun() ->
+        lager:info("backfill starting location_hex [~p]", [length(Locs)]),
+        blockchain_utils:pmap(
+            fun
+                ({_Addr, null}) ->
+                    ok;
+                ({Addr, LocationBin}) ->
+                    Location = h3:from_string(binary_to_list(LocationBin)),
+                    {ok, _} =
+                        ?EQUERY(
+                            "update gateway_inventory set location_hex = $2 where address = $1",
+                            [
+                                Addr,
+                                ?MAYBE_H3(
+                                    ?MAYBE_FN(fun be_db_gateway:calculate_location_hex/1, Location)
+                                )
+                            ]
+                        )
+            end,
+            Locs
+        ),
+        lager:info("backfill complete location_hex [~p]", [length(Locs)])
+    end),
+    ok.
 
 %%
 %% Backfill dc_burn
@@ -402,3 +415,22 @@ consensus_failure_members() ->
         0,
         Blocks
     ).
+
+%%
+%% Remove location rows with null street, city, state, country columns. The
+%% geocoder will backfill as needed.
+%%
+
+gateway_location_clear_nulls() ->
+    {ok, Deleted} = ?EQUERY(
+        [
+            "delete from locations ",
+            "where ",
+            "short_street is null || long_street is null || ",
+            "short_city is null || long_city is null || ",
+            "short_state is null || long_state is null || ",
+            "short_country is null || long_country is null "
+        ],
+        []
+    ),
+    Deleted.
