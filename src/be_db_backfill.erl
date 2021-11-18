@@ -9,6 +9,7 @@
     gateway_names/0,
     oui_subnets/0,
     location_geometry/0,
+    location_geometry_missing/0,
     reward_gateways/2,
     gateway_location_hex/0,
     dc_burn/2,
@@ -198,6 +199,32 @@ location_geometry() ->
                 {Lat, Lon} = h3:to_geo(h3:from_string(binary_to_list(Location))),
                 {ok, _} = ?EQUERY(
                     "update locations set geometry = ST_SetSRID(ST_MakePoint($2, $3), 4326) where location = $1",
+                    [Location, Lon, Lat]
+                )
+            catch
+                What:Why:Where ->
+                    lager:info("Ignoring invalid location: ~p: ~p", [
+                        Location,
+                        {What, Why, Where}
+                    ])
+            end
+        end,
+        Locations
+    ),
+    length(Locations).
+
+%%
+%% Backfill missing gateway_inventory locations
+%%
+
+location_geometry_missing() ->
+    {ok, _, Locations} = ?EQUERY("select location from gateway_inventory where location not in (select location from locations)", []),
+    lists:foreach(
+        fun({Location}) ->
+            try
+                {Lat, Lon} = h3:to_geo(h3:from_string(binary_to_list(Location))),
+                {ok, _} = ?EQUERY(
+                    "insert into locations (location, geometry) values ($1, ST_SetSRID(ST_MakePoint($2, $3), 4326)) on conflict do nothing",
                     [Location, Lon, Lat]
                 )
             catch
