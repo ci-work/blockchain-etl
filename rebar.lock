@@ -118,7 +118,7 @@
  {<<"procket">>,{pkg,<<"procket">>,<<"0.9.5">>},3},
  {<<"psql_migration">>,
   {git,"https://github.com/ci-work/psql-migration.git",
-       {ref,"78fc1d217bb274e52a6e586951ea3f7a1dc6a6a5"}},
+       {ref,"450b5966eac982d9bd8fd053904261e15457faa7"}},
   0},
  {<<"ranch">>,{pkg,<<"ranch">>,<<"1.5.0">>},2},
  {<<"rand_compat">>,{pkg,<<"rand_compat">>,<<"0.0.3">>},3},
