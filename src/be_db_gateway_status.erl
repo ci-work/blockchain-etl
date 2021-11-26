@@ -36,7 +36,7 @@
 -define(STATUS_REFRESH_MINS, 10).
 %% Maximum number of status updates per second to limit the number of
 %% spawned updates.
--define(MAX_REQUEST_RATE, 750).
+-define(MAX_REQUEST_RATE, 10000).
 %% A peer is recently added if it's (first) add_gateway transaction is in the
 %% last "48 hours" in blocks (60 blocks per hour assumed)
 -define(PEER_RECENTLY_ADDED_BLOCKS, 60 * 48).
