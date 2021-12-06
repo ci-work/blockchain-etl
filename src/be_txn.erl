@@ -78,9 +78,6 @@ to_json(<<"state_channel_close_v1">>, T, Opts) ->
     };
 to_json(<<"rewards_v2">>, T, Opts) ->
     {chain, Chain} = lists:keyfind(chain, 1, Opts),
-    Ledger = blockchain:ledger(Chain),
-    {ok, LedgerHeight} = blockchain_ledger_v1:current_height(Ledger),
-    lager:info("Ledger Height: ~p", [LedgerHeight]),
     Start = blockchain_txn_rewards_v2:start_epoch(T),
     End = blockchain_txn_rewards_v2:end_epoch(T),
     {ok, Metadata} = be_db_reward:calculate_rewards_metadata(Start, End, Chain),
