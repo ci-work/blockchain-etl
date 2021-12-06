@@ -35,10 +35,10 @@
 %%
 %% The request rate is automatically adapted to be higher as more
 %% validators come online.
--define(STATUS_REFRESH_MINS, 100).
+-define(STATUS_REFRESH_MINS, 10).
 %% Maximum number of status updates per second to limit the number of
 %% spawned updates.
--define(MAX_REQUEST_RATE, 1).
+-define(MAX_REQUEST_RATE, 200).
 
 %%
 %% Utility API
