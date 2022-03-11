@@ -24,6 +24,7 @@ register_all_usage() ->
             backfill_gateway_names_usage(),
             backfill_oui_subnets_usage(),
             backfill_location_geometry_usage(),
+            backfill_location_geometry_missing_usage(),
             backfill_reward_gateways_usage(),
             backfill_gateway_location_hex_usage(),
             backfill_dc_burn_usage(),
@@ -46,6 +47,7 @@ register_all_cmds() ->
             backfill_gateway_names_cmd(),
             backfill_oui_subnets_cmd(),
             backfill_location_geometry_cmd(),
+            backfill_location_geometry_missing_cmd(),
             backfill_reward_gateways_cmd(),
             backfill_gateway_location_hex_cmd(),
             backfill_dc_burn_cmd(),
@@ -70,6 +72,7 @@ backfill_usage() ->
             "  backfill gateway_names                - Backfill names in gateway_inventory.\n"
             "  backfill oui_subnets                  - Backfill OUI inventory subnets.\n"
             "  backfill location_geometry            - Backfill location postgis geometries.\n"
+            "  backfill location_geometry_missing    - Backfill missing gateway_inventory locations and postgis geometries.\n"
             "  backfill reward_gateways              - Backfill reward gateways.\n"
             "  backfill gateway_location_hex         - Backfill location hex in gateway_inventory.\n"
             "  backfill dc_burn                      - Backfill DC burn table.\n"
@@ -278,6 +281,34 @@ backfill_location_geometry_usage() ->
 backfill_location_geometry(_CmdBase, [], _) ->
     Updated = be_db_backfill:location_geometry(),
     [clique_status:text(io_lib:format("Updated ~p", [Updated]))].
+
+%%
+%% backfill location_geometry_missing
+%%
+
+backfill_location_geometry_missing_cmd() ->
+    [
+        [
+            ["backfill", "location_geometry_missing"],
+            [],
+            [],
+            fun backfill_location_geometry_missing/3
+        ]
+    ].
+
+backfill_location_geometry_missing_usage() ->
+    [
+        ["backfill", "location_geometry_missing"],
+        [
+            "backfill location_geometry_missing \n\n",
+            "  Updates the locations table with the postgis geometry for missing gateway_inventory locations.\n\n"
+        ]
+    ].
+
+backfill_location_geometry_missing(_CmdBase, [], _) ->
+    Updated = be_db_backfill:location_geometry_missing(),
+    [clique_status:text(io_lib:format("Updated ~p", [Updated]))].
+
 
 %%
 %% backfill reward_gateways
