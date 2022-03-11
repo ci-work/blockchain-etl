@@ -5,7 +5,7 @@
  {<<"base64url">>,{pkg,<<"base64url">>,<<"1.0.1">>},0},
  {<<"blockchain">>,
   {git,"https://github.com/ci-work/blockchain-core.git",
-       {ref,"82ff260791cc7387feacb3b371895b7cfc14fe58"}},
+       {ref,"8b56e4bc5b46ca93b42736c248e71ea8f46ff261"}},
   0},
  {<<"certifi">>,{pkg,<<"certifi">>,<<"2.8.0">>},1},
  {<<"chatterbox">>,
