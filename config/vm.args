@@ -4,6 +4,8 @@
 +c true
 +C multi_time_warp
 +sbwt very_short
-+stbt db
++stbt nnps
 +sub true
 +swt very_low
++A 50
++zdbbl 2000000
