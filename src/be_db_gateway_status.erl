@@ -192,20 +192,20 @@ handle_info(check_status, State = #state{requests = Requests}) ->
     PeerBook = libp2p_swarm:peerbook(blockchain_swarm:swarm()),
     Ledger = blockchain:ledger(),
     
-    {ok, _, Results} = ?PREPARED_QUERY(?S_STATUS_MISSING_LIST, [RequestRate]),
+    {ok, _, MissingResults} = ?PREPARED_QUERY(?S_STATUS_MISSING_LIST, [RequestRate]),
     %% Ignore already outstanding requests
-    FilteredResults = lists:filter(
+    MissingFilteredResults = lists:filter(
         fun({A}) ->
             length(ets:lookup(Requests, A)) == 0
         end,
-        Results
+        MissingResults
     ),
 
     lists:foreach(
         fun({A}) ->
             request_status(A, PeerBook, Ledger, Requests)
         end,
-        FilteredResults
+        MissingFilteredResults
     ),
     
     {ok, _, Results} = ?PREPARED_QUERY(?S_STATUS_UNKNOWN_LIST, [RequestRate]),
