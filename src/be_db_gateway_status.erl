@@ -36,7 +36,7 @@
 -define(STATUS_REFRESH_MINS, 10).
 %% Maximum number of status updates per second to limit the number of
 %% spawned updates.
--define(MAX_REQUEST_RATE, 50000).
+-define(MAX_REQUEST_RATE, 500).
 %% A peer is recently added if it's (first) add_gateway transaction is in the
 %% last "48 hours" in blocks (60 blocks per hour assumed)
 -define(PEER_RECENTLY_ADDED_BLOCKS, 60 * 48).
@@ -62,6 +62,7 @@ adjust_request_rate() ->
 %%
 
 -define(S_STATUS_UNKNOWN_LIST, "gateway_status_unknown_list").
+-define(S_STATUS_MISSING_LIST, "gateway_status_missing_list").
 -define(S_STATUS_INSERT, "gateway_status_insert").
 -define(S_PEER_ADDED, "gateway_peer_added").
 
@@ -83,6 +84,17 @@ prepare_conn(Conn) ->
             []
         ),
     {ok, S2} =
+        epgsql:parse(
+            Conn,
+            ?S_STATUS_MISSING_LIST,
+            [
+                "select address from gateway_inventory",
+                " where address not in (select distinct address from gateway_status) ",
+                "limit $1"
+            ],
+            []
+        ),
+    {ok, S3} =
         epgsql:parse(
             Conn,
             ?S_STATUS_INSERT,
@@ -107,7 +119,7 @@ prepare_conn(Conn) ->
             ],
             []
         ),
-    {ok, S3} =
+    {ok, S4} =
         epgsql:parse(
             Conn,
             ?S_PEER_ADDED,
@@ -122,8 +134,9 @@ prepare_conn(Conn) ->
         ),
     #{
         ?S_STATUS_UNKNOWN_LIST => S1,
-        ?S_STATUS_INSERT => S2,
-        ?S_PEER_ADDED => S3
+        ?S_STATUS_MISSING_LIST => S2,
+        ?S_STATUS_INSERT => S3,
+        ?S_PEER_ADDED => S4
     }.
 
 %%
@@ -160,8 +173,8 @@ handle_cast(Msg, State) ->
     {noreply, State}.
 
 handle_info(check_status, State = #state{requests = Requests}) ->
-    %% If there are outstnading requests in the ets table we
-    %% recalcualte the request rate since we're not keeping up.
+    %% If there are outstanding requests in the ets table we
+    %% recalculate the request rate since we're not keeping up.
     RequestRate =
         case ets:info(Requests, size) of
             0 -> State#state.request_rate;
@@ -175,6 +188,26 @@ handle_info(check_status, State = #state{requests = Requests}) ->
                 RequestRate
             ])
     end,
+    
+    PeerBook = libp2p_swarm:peerbook(blockchain_swarm:swarm()),
+    Ledger = blockchain:ledger(),
+    
+    {ok, _, Results} = ?PREPARED_QUERY(?S_STATUS_MISSING_LIST, [RequestRate]),
+    %% Ignore already outstanding requests
+    FilteredResults = lists:filter(
+        fun({A}) ->
+            length(ets:lookup(Requests, A)) == 0
+        end,
+        Results
+    ),
+
+    lists:foreach(
+        fun({A}) ->
+            request_status(A, PeerBook, Ledger, Requests)
+        end,
+        FilteredResults
+    ),
+    
     {ok, _, Results} = ?PREPARED_QUERY(?S_STATUS_UNKNOWN_LIST, [RequestRate]),
 
     %% Ignore already outstanding requests
@@ -185,8 +218,6 @@ handle_info(check_status, State = #state{requests = Requests}) ->
         Results
     ),
 
-    PeerBook = libp2p_swarm:peerbook(blockchain_swarm:swarm()),
-    Ledger = blockchain:ledger(),
     lists:foreach(
         fun({A}) ->
             request_status(A, PeerBook, Ledger, Requests)
