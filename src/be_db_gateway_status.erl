@@ -58,7 +58,6 @@ adjust_request_rate() ->
 %%
 
 -define(S_STATUS_UNKNOWN_LIST, "gateway_status_unknown_list").
--define(S_STATUS_MISSING_LIST, "gateway_status_missing_list").
 -define(S_STATUS_INSERT, "gateway_status_insert").
 -define(S_PEER_ADDED, "gateway_peer_added").
 
@@ -79,17 +78,6 @@ prepare_conn(Conn) ->
             []
         ),
     {ok, S2} =
-        epgsql:parse(
-            Conn,
-            ?S_STATUS_MISSING_LIST,
-            [
-                "select address from gateway_inventory",
-                " where address not in (select distinct address from gateway_status) ",
-                "limit $1"
-            ],
-            []
-        ),
-    {ok, S3} =
         epgsql:parse(
             Conn,
             ?S_STATUS_INSERT,
@@ -114,7 +102,7 @@ prepare_conn(Conn) ->
             ],
             []
         ),
-    {ok, S4} =
+    {ok, S3} =
         epgsql:parse(
             Conn,
             ?S_PEER_ADDED,
@@ -129,9 +117,8 @@ prepare_conn(Conn) ->
         ),
     #{
         ?S_STATUS_UNKNOWN_LIST => S1,
-        ?S_STATUS_MISSING_LIST => S2,
-        ?S_STATUS_INSERT => S3,
-        ?S_PEER_ADDED => S4
+        ?S_STATUS_INSERT => S2,
+        ?S_PEER_ADDED => S3
     }.
 
 %%
@@ -186,22 +173,6 @@ handle_info(check_status, State = #state{requests = Requests}) ->
     
     PeerBook = libp2p_swarm:peerbook(blockchain_swarm:swarm()),
     Ledger = blockchain:ledger(),
-    
-    {ok, _, MissingResults} = ?PREPARED_QUERY(?S_STATUS_MISSING_LIST, [RequestRate]),
-    %% Ignore already outstanding requests
-    MissingFilteredResults = lists:filter(
-        fun({A}) ->
-            length(ets:lookup(Requests, A)) == 0
-        end,
-        MissingResults
-    ),
-
-    lists:foreach(
-        fun({A}) ->
-            request_status(A, FirstBlock, LastBlock, PeerBook, Ledger, Requests)
-        end,
-        MissingFilteredResults
-    ),
     
     {ok, _, Results} = ?PREPARED_QUERY(?S_STATUS_UNKNOWN_LIST, [RequestRate]),
 
