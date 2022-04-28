@@ -198,7 +198,7 @@ handle_info(check_status, State = #state{requests = Requests}) ->
 
     lists:foreach(
         fun({A}) ->
-            request_status(A, PeerBook, Ledger, Requests)
+            request_status(A, FirstBlock, LastBlock, PeerBook, Ledger, Requests)
         end,
         MissingFilteredResults
     ),
