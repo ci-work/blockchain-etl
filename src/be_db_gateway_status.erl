@@ -33,10 +33,10 @@
 %%
 %% The request rate is automatically adapted to be higher as more
 %% hotspots come online.
--define(STATUS_REFRESH_MINS, 10).
+-define(STATUS_REFRESH_MINS, 300).
 %% Maximum number of status updates per second to limit the number of
 %% spawned updates.
--define(MAX_REQUEST_RATE, 200).
+-define(MAX_REQUEST_RATE, 2).
 %% A peer is recently added if it's (first) add_gateway transaction is in the
 %% last "48 hours" in blocks (60 blocks per hour assumed)
 -define(HOTSPOT_RECENTLY_ADDED_BLOCKS, 60 * 48).
